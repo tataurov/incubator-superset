@@ -638,7 +638,6 @@ class TimeTableViz(BaseViz):
             is_group_by=len(fd.get("groupby")) > 0,
         )
 
-
 class PivotTableViz(BaseViz):
 
     """A pivot table view, define your rows, columns and metrics"""
@@ -1348,7 +1347,7 @@ class NVD3DualLineViz(NVD3Viz):
                 "key": series_title,
                 "classed": classed,
                 "values": [
-                    {"x": ds, "y": ys[ds] if ds in ys else None} for ds in df.index
+                    {"x": ds, "y": ys[ds] if ds in ys else None} for ds in df.metric_x
                 ],
                 "yAxis": i + 1,
                 "type": "line",
@@ -1364,7 +1363,9 @@ class NVD3DualLineViz(NVD3Viz):
 
         metric = utils.get_metric_name(fd.get("metric"))
         metric_2 = utils.get_metric_name(fd.get("metric_2"))
-        df = df.pivot_table(index=DTTM_ALIAS, values=[metric, metric_2])
+        metric_x = utils.get_metric_name(fd.get("metric_x"))
+
+        df = df.pivot_table(index=DTTM_ALIAS, values=[metric, metric_2, metric_x])
 
         chart_data = self.to_series(df)
         return chart_data
@@ -1928,6 +1929,81 @@ class HeatmapViz(BaseViz):
             df["rank"] = df.v.rank(pct=True)
         return {"records": df.to_dict(orient="records"), "extents": [min_, max_]}
 
+class LineBarCustomViz(NVD3DualLineViz):
+
+    """A multi char with bars and line chart """
+
+    viz_type = "line_bar_custom"
+    sort_series = True
+    verbose_name = _("LineBarCustom View")
+    is_timeseries = False
+
+    def query_obj(self):
+        d = super().query_obj()
+        m1 = self.form_data.get("metric")
+        m2 = self.form_data.get("metric_2")
+        group = self.form_data.get("groupby")
+        d["metrics"] = [m1, m2]
+
+        if not m1:
+            raise Exception(_("Pick a metric for bars!"))
+        if not group:
+            raise Exception(_("Pick a group by for x axis!"))
+        if not m2:
+            raise Exception(_("Pick a metric for line!"))
+        if m1 == m2:
+            raise Exception(
+                _("Please choose different metrics" " on bars and line chart")
+            )
+        return d
+
+    def to_series(self, df, classed=""):
+        cols = []
+        for col in df.columns:
+            if col == "":
+                cols.append("N/A")
+            elif col is None:
+                cols.append("NULL")
+            else:
+                cols.append(col)
+        df.columns = cols
+        series = df.to_dict("series")
+        chart_data = []
+        metrics = [self.form_data.get("metric"), self.form_data.get("metric_2")]
+
+        for i, m in enumerate(metrics):
+            m = utils.get_metric_name(m)
+            ys = series[m]
+            if df[m].dtype.kind not in "biufc":
+                continue
+            series_title = m
+            types = ['bar', 'line']
+            d = {
+                "key": series_title,
+                "classed": classed,
+                "values": [
+                    {"x": ds, "y": ys[ds] if ds in ys else None} for ds in df.index
+                ],
+                "yAxis": 1,
+                "type": types[i],
+            }
+            chart_data.append(d)
+        return chart_data
+
+    def get_data(self, df):
+        fd = self.form_data
+
+        if self.form_data.get("granularity") == "all":
+            raise Exception(_("Pick a time granularity for your time series"))
+
+        metric = utils.get_metric_name(fd.get("metric"))
+        metric_2 = utils.get_metric_name(fd.get("metric_2"))
+        groupby = self.form_data.get("groupby")
+
+        df = df.pivot_table(index=groupby, values=[metric, metric_2])
+
+        chart_data = self.to_series(df)
+        return chart_data
 
 class HorizonViz(NVD3TimeSeriesViz):
 

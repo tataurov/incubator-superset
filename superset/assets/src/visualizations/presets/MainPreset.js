@@ -51,6 +51,7 @@ import { AreaChartPlugin, BarChartPlugin, BoxPlotChartPlugin, BubbleChartPlugin,
 
 import DeckGLChartPreset from './DeckGLChartPreset';
 
+import LineBarCustomChartPlugin from '../LineBarCustom/LineBarCustomChartPlugin';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
 
@@ -77,6 +78,7 @@ export default class MainPreset extends Preset {
         new DualLineChartPlugin().configure({ key: 'dual_line' }),
         new EventFlowChartPlugin().configure({ key: 'event_flow' }),
         new FilterBoxChartPlugin().configure({ key: 'filter_box' }),
+        new LineBarCustomChartPlugin().configure({ key: 'line_bar_custom' }),
         new ForceDirectedChartPlugin().configure({ key: 'directed_force' }),
         new HeatmapChartPlugin().configure({ key: 'heatmap' }),
         new HistogramChartPlugin().configure({ key: 'histogram' }),
